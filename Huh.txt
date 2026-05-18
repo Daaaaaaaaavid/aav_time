@@ -1,0 +1,5 @@
+Datum ist falsch, es ist der 11 Systhem denkt es ist der 12
+Wenn man auf dem Aktuellen Tag ist werden alle Tage Blau markiert, sonst nicht
+wenn man den Timer Startet und einen vergangenen Tag ausgewählt hat wird an diesem eine Zeit eingetragen, je älter der Tag desto gößer die Zeit
+Wenn man den Timer an einem zurünftigen Tag startet wird zwar im Kalender nichts angezeigt allerdings in Arbeitsblöcke Tab
+Wenn man einen Arbeitsblock löscht werden alle gelöscht
