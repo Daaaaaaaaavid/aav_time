@@ -9,18 +9,26 @@ interface TimerProps {
 }
 
 export default function Timer({ onTimerComplete, showTemplates = true, disabled = false }: TimerProps) {
-  const {
-    timerFormattedTime,
-    isTimerRunning,
-    startTimer,
-    stopTimer,
-    resetTimer,
-    getActiveTimerEntry,
-    taskTemplates,
-    updateActiveTimerEntry,
-  } = useApp();
+   const {
+     timerFormattedTime,
+     isTimerRunning,
+     startTimer,
+     stopTimer,
+     resetTimer,
+     getActiveTimerEntry,
+     taskTemplates,
+     updateActiveTimerEntry,
+     selectedDate,
+   } = useApp();
 
   const activeEntry = getActiveTimerEntry();
+
+  // Prüfen ob selectedDate heute ist
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const selectedDateObj = new Date(selectedDate);
+  selectedDateObj.setHours(0, 0, 0, 0);
+  const isToday = today.getTime() === selectedDateObj.getTime();
 
   // Lokaler State für Formularfelder (wird beim Start bzw. bei activeEntry gesetzt)
   const [title, setTitle] = useState('');
@@ -37,6 +45,9 @@ export default function Timer({ onTimerComplete, showTemplates = true, disabled 
   }, [activeEntry]);
 
   const handleStart = () => {
+    // Timer kann nur für heutigen Tag gestartet werden
+    if (!isToday) return;
+    
     if (selectedTemplate) {
       startTimer(selectedTemplate);
       const template = taskTemplates.find(t => t.id === selectedTemplate);
@@ -112,16 +123,16 @@ export default function Timer({ onTimerComplete, showTemplates = true, disabled 
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-semibold mb-4">Timer</h2>
 
-      {/* Template Selection - immer sichtbar */}
-      {showTemplates && (
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Task Template (optional)</label>
-          <select
-            value={selectedTemplate}
-            onChange={handleTemplateChange}
-            disabled={disabled || isActive}
-            className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-          >
+{/* Template Selection - immer sichtbar */}
+       {showTemplates && (
+         <div className="mb-4">
+           <label className="block text-sm font-medium mb-2">Task Template (optional)</label>
+           <select
+             value={selectedTemplate}
+             onChange={handleTemplateChange}
+             disabled={disabled || isActive || !isToday}
+             className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+           >
             <option value="">Kein Template</option>
             {taskTemplates.map((tpl) => (
               <option key={tpl.id} value={tpl.id}>
@@ -137,6 +148,13 @@ export default function Timer({ onTimerComplete, showTemplates = true, disabled 
         {timerFormattedTime}
       </div>
 
+      {/* Warning for non-today dates */}
+      {!isToday && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+          <p className="text-sm text-yellow-700">Timer kann nur für den aktuellen Tag gestartet werden.</p>
+        </div>
+      )}
+
       {/* Title & Description Inputs - immer sichtbar */}
       <div className="space-y-4 mb-6">
         <div>
@@ -146,7 +164,7 @@ export default function Timer({ onTimerComplete, showTemplates = true, disabled 
             value={title}
             onChange={handleTitleChange}
             placeholder="Arbeitszeit"
-            disabled={disabled}
+            disabled={disabled || !isToday}
             className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
           />
         </div>
@@ -157,22 +175,23 @@ export default function Timer({ onTimerComplete, showTemplates = true, disabled 
             onChange={handleDescriptionChange}
             placeholder="Beschreibung..."
             rows={3}
-            disabled={disabled}
+            disabled={disabled || !isToday}
             className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 resize-none disabled:bg-gray-100 disabled:text-gray-500"
           />
         </div>
       </div>
 
-      {/* Control Buttons */}
-      <div className="flex gap-3 justify-center">
-        {!isTimerRunning && !activeEntry && (
-          <button
-            onClick={handleStart}
-            className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"
-          >
-            Start
-          </button>
-        )}
+{/* Control Buttons */}
+       <div className="flex gap-3 justify-center">
+         {!isTimerRunning && !activeEntry && (
+           <button
+             onClick={handleStart}
+             disabled={!isToday}
+             className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+           >
+             Start
+           </button>
+         )}
         {isTimerRunning && (
           <button
             onClick={handleStop}
