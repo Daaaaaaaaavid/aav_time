@@ -51,9 +51,10 @@ export default function Calendar({ onDateSelect, initialDate }: CalendarProps) {
     for (let i = daysInPrevMonth - 1; i >= 0; i--) {
       const day = prevMonthLastDay - i;
       const date = new Date(year, month - 2, day);
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
       days.push({
         day,
-        date: date.toISOString().split('T')[0],
+        date: dateStr,
         isCurrentMonth: false,
       });
     }
@@ -61,9 +62,10 @@ export default function Calendar({ onDateSelect, initialDate }: CalendarProps) {
     // Aktueller Monat
     for (let day = 1; day <= totalDays; day++) {
       const date = new Date(year, month - 1, day);
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
       days.push({
         day,
-        date: date.toISOString().split('T')[0],
+        date: dateStr,
         isCurrentMonth: true,
       });
     }
@@ -72,9 +74,10 @@ export default function Calendar({ onDateSelect, initialDate }: CalendarProps) {
     const remainingDays = 42 - days.length; // 6 rows × 7 days
     for (let day = 1; day <= remainingDays; day++) {
       const date = new Date(year, month, day);
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
       days.push({
         day,
-        date: date.toISOString().split('T')[0],
+        date: dateStr,
         isCurrentMonth: false,
       });
     }
@@ -104,7 +107,7 @@ export default function Calendar({ onDateSelect, initialDate }: CalendarProps) {
 
       const goToToday = () => {
         const today = new Date();
-        const todayStr = today.toISOString().split('T')[0];
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         setCurrentMonth({ year: today.getFullYear(), month: today.getMonth() + 1 });
         setSelectedDate(todayStr);
       };
@@ -151,22 +154,23 @@ export default function Calendar({ onDateSelect, initialDate }: CalendarProps) {
         ))}
       </div>
 
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-1">
-        {daysInMonth.map((dayInfo) => {
-          const dayData = getDayData(dayInfo.date);
-          return (
-          <CalendarDay
-            key={dayInfo.date}
-            day={dayInfo.day}
-            dayData={dayData.timeEntries.length > 0 || dayData.todos.length > 0 ? dayData : null}
-            isCurrentMonth={dayInfo.isCurrentMonth}
-            isSelected={selectedDate === dayInfo.date}
-            onClick={() => handleDayClick(dayInfo.date)}
-          />
-          );
-        })}
-      </div>
+{/* Calendar grid */}
+       <div className="grid grid-cols-7 gap-1">
+         {daysInMonth.map((dayInfo) => {
+           const dayData = getDayData(dayInfo.date);
+           return (
+           <CalendarDay
+             key={dayInfo.date}
+             day={dayInfo.day}
+             date={dayInfo.date}
+             dayData={dayData.timeEntries.length > 0 || dayData.todos.length > 0 ? dayData : null}
+             isCurrentMonth={dayInfo.isCurrentMonth}
+             isSelected={selectedDate === dayInfo.date}
+             onClick={() => handleDayClick(dayInfo.date)}
+           />
+           );
+         })}
+       </div>
 
       {/* Legend */}
       <div className="mt-4 flex justify-center gap-6 text-sm">

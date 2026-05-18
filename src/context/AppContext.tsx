@@ -51,7 +51,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   });
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.SELECTED_DATE);
-    return saved || new Date().toISOString().split('T')[0];
+    if (saved) return saved;
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   });
   const [activeTimerEntry, setActiveTimerEntry] = useState<TimeEntry | undefined>(undefined);
   const timer = useTimer();

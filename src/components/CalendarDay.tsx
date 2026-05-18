@@ -1,21 +1,25 @@
 import type { DayData } from '../types';
-import { useApp } from '../context/AppContext';
 
 export default function CalendarDay({
   day,
   dayData,
   isCurrentMonth,
   isSelected,
+  date,
   onClick,
 }: {
   day: number;
   dayData: DayData | null;
   isCurrentMonth: boolean;
   isSelected: boolean;
+  date: string;
   onClick: () => void;
 }) {
-  const { selectedDate } = useApp();
-  const isToday = selectedDate === `${new Date().toISOString().split('T')[0]}`;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dayDate = new Date(date);
+  dayDate.setHours(0, 0, 0, 0);
+  const isToday = today.getTime() === dayDate.getTime();
 
   const totalMinutes = dayData?.timeEntries.reduce((sum, entry) => sum + (entry.duration || 0), 0) || 0;
   const hasTime = totalMinutes > 0;
