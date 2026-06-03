@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useDeleteTaskTemplate, useTaskTemplates } from '../api/taskTemplate';
 import TaskTemplateForm from './TaskTemplate';
 
 interface TaskTemplateListProps {
@@ -7,14 +7,24 @@ interface TaskTemplateListProps {
   showCreateButton?: boolean;
 }
 
-export default function TaskTemplateList({ onSelect, showCreateButton = true }: TaskTemplateListProps) {
-  const { taskTemplates, deleteTaskTemplate } = useApp();
+export default function TaskTemplateList({
+  onSelect,
+  showCreateButton = true,
+}: TaskTemplateListProps) {
+  const { data: taskTemplates = [], isLoading } = useTaskTemplates();
+  const deleteTaskTemplate = useDeleteTaskTemplate();
+
   const [showForm, setShowForm] = useState(false);
+
+  if (isLoading) {
+    return <p>Lade Templates...</p>;
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Task-Templates</h2>
+
         {showCreateButton && (
           <button
             onClick={() => setShowForm(true)}
@@ -29,26 +39,31 @@ export default function TaskTemplateList({ onSelect, showCreateButton = true }: 
         <p className="text-gray-500 text-center py-8">Keine Templates vorhanden</p>
       ) : (
         <div className="space-y-2">
-          {taskTemplates.map((template) => (
+          {taskTemplates.map(template => (
             <div
               key={template.id}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-md hover:bg-gray-100"
+              className="p-3 bg-gray-50 rounded-md hover:bg-gray-100 cursor-pointer"
+              onClick={() => onSelect?.(template.id)}
             >
-              <div
-                className="flex-1 cursor-pointer"
-                onClick={() => onSelect?.(template.id)}
-              >
-                <p className="font-medium">{template.title}</p>
-                {template.description && (
-                  <p className="text-sm text-gray-600">{template.description}</p>
-                )}
+              <div className="flex justify-between gap-3">
+                <div>
+                  <p className="font-medium">{template.title}</p>
+
+                  {template.description && (
+                    <p className="text-sm text-gray-600">{template.description}</p>
+                  )}
+                </div>
+
+                <button
+                  onClick={event => {
+                    event.stopPropagation();
+                    deleteTaskTemplate.mutate(template.id);
+                  }}
+                  className="px-3 py-1 text-red-600 hover:bg-red-50 rounded"
+                >
+                  Löschen
+                </button>
               </div>
-              <button
-                onClick={() => deleteTaskTemplate(template.id)}
-                className="px-3 py-1 text-red-600 hover:bg-red-50 rounded"
-              >
-                Löschen
-              </button>
             </div>
           ))}
         </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { useTaskTemplates } from '../api/taskTemplate';
 import type { TimeEntry } from '../types';
 
 interface TimerProps {
@@ -8,34 +9,38 @@ interface TimerProps {
   disabled?: boolean;
 }
 
-export default function Timer({ onTimerComplete, showTemplates = true, disabled = false }: TimerProps) {
-   const {
-     timerFormattedTime,
-     isTimerRunning,
-     startTimer,
-     stopTimer,
-     resetTimer,
-     getActiveTimerEntry,
-     taskTemplates,
-     updateActiveTimerEntry,
-     selectedDate,
-   } = useApp();
+export default function Timer({
+  onTimerComplete,
+  showTemplates = true,
+  disabled = false,
+}: TimerProps) {
+  const {
+    timerFormattedTime,
+    isTimerRunning,
+    startTimer,
+    stopTimer,
+    resetTimer,
+    getActiveTimerEntry,
+    updateActiveTimerEntry,
+    selectedDate,
+  } = useApp();
+
+  const { data: taskTemplates = [] } = useTaskTemplates();
 
   const activeEntry = getActiveTimerEntry();
 
-  // Prüfen ob selectedDate heute ist
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
   const selectedDateObj = new Date(selectedDate);
   selectedDateObj.setHours(0, 0, 0, 0);
+
   const isToday = today.getTime() === selectedDateObj.getTime();
 
-  // Lokaler State für Formularfelder (wird beim Start bzw. bei activeEntry gesetzt)
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [selectedTemplate, setSelectedTemplate] = useState('');
 
-  // Sync local state mit activeEntry, wenn sich dieser ändert
   useEffect(() => {
     if (activeEntry) {
       setTitle(activeEntry.title);
@@ -45,25 +50,29 @@ export default function Timer({ onTimerComplete, showTemplates = true, disabled 
   }, [activeEntry]);
 
   const handleStart = () => {
-    // Timer kann nur für heutigen Tag gestartet werden
-    if (!isToday) return;
-    
+    if (!isToday || disabled) return;
+
     if (selectedTemplate) {
-      startTimer(selectedTemplate);
       const template = taskTemplates.find(t => t.id === selectedTemplate);
-      if (template) {
-        setTitle(template.title);
-        setDescription(template.description);
-      }
-    } else if (title.trim()) {
-      startTimer(undefined, title.trim(), description.trim());
-    } else {
-      startTimer();
+
+      startTimer({
+        title: template?.title,
+        description: template?.description,
+        taskTemplateId: selectedTemplate,
+      });
+
+      return;
     }
+
+    startTimer({
+      title: title.trim() || 'Arbeitszeit',
+      description: description.trim(),
+    });
   };
 
   const handleStop = () => {
     stopTimer();
+
     if (activeEntry && onTimerComplete) {
       onTimerComplete(activeEntry);
     }
@@ -79,6 +88,7 @@ export default function Timer({ onTimerComplete, showTemplates = true, disabled 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setTitle(newTitle);
+
     if (activeEntry) {
       updateActiveTimerEntry({ title: newTitle });
     }
@@ -87,6 +97,7 @@ export default function Timer({ onTimerComplete, showTemplates = true, disabled 
   const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newDesc = e.target.value;
     setDescription(newDesc);
+
     if (activeEntry) {
       updateActiveTimerEntry({ description: newDesc });
     }
@@ -95,23 +106,18 @@ export default function Timer({ onTimerComplete, showTemplates = true, disabled 
   const handleTemplateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newTemplateId = e.target.value;
     setSelectedTemplate(newTemplateId);
-    if (activeEntry) {
-      const template = taskTemplates.find(t => t.id === newTemplateId);
-      if (template) {
-        setTitle(template.title);
-        setDescription(template.description);
+
+    const template = taskTemplates.find(t => t.id === newTemplateId);
+
+    if (template) {
+      setTitle(template.title);
+      setDescription(template.description);
+
+      if (activeEntry) {
         updateActiveTimerEntry({
-          taskTemplateId: newTemplateId || undefined,
+          taskTemplateId: template.id,
           title: template.title,
           description: template.description,
-        });
-      } else {
-        setTitle('');
-        setDescription('');
-        updateActiveTimerEntry({
-          taskTemplateId: undefined,
-          title: '',
-          description: '',
         });
       }
     }
@@ -123,18 +129,19 @@ export default function Timer({ onTimerComplete, showTemplates = true, disabled 
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-semibold mb-4">Timer</h2>
 
-{/* Template Selection - immer sichtbar */}
-       {showTemplates && (
-         <div className="mb-4">
-           <label className="block text-sm font-medium mb-2">Task Template (optional)</label>
-           <select
-             value={selectedTemplate}
-             onChange={handleTemplateChange}
-             disabled={disabled || isActive || !isToday}
-             className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-           >
+      {showTemplates && (
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">Task Template optional</label>
+
+          <select
+            value={selectedTemplate}
+            onChange={handleTemplateChange}
+            disabled={isTimerRunning}
+            className="w-full p-2 border rounded-md"
+          >
             <option value="">Kein Template</option>
-            {taskTemplates.map((tpl) => (
+
+            {taskTemplates.map(tpl => (
               <option key={tpl.id} value={tpl.id}>
                 {tpl.title}
               </option>
@@ -143,55 +150,44 @@ export default function Timer({ onTimerComplete, showTemplates = true, disabled 
         </div>
       )}
 
-      {/* Time Display */}
-      <div className="text-6xl font-mono text-center my-8 text-gray-800">
+      <div className="text-4xl font-mono text-center my-6">
         {timerFormattedTime}
       </div>
 
-      {/* Warning for non-today dates */}
       {!isToday && (
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-          <p className="text-sm text-yellow-700">Timer kann nur für den aktuellen Tag gestartet werden.</p>
-        </div>
+        <p className="text-sm text-red-600 text-center mb-4">
+          Timer kann nur für den aktuellen Tag gestartet werden.
+        </p>
       )}
 
-      {/* Title & Description Inputs - immer sichtbar */}
-      <div className="space-y-4 mb-6">
-        <div>
-          <label className="block text-sm font-medium mb-1">Titel</label>
-          <input
-            type="text"
-            value={title}
-            onChange={handleTitleChange}
-            placeholder="Arbeitszeit"
-            disabled={disabled || !isToday}
-            className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Beschreibung</label>
-          <textarea
-            value={description}
-            onChange={handleDescriptionChange}
-            placeholder="Beschreibung..."
-            rows={3}
-            disabled={disabled || !isToday}
-            className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 resize-none disabled:bg-gray-100 disabled:text-gray-500"
-          />
-        </div>
+      <div className="space-y-3 mb-6">
+        <input
+          value={title}
+          onChange={handleTitleChange}
+          placeholder="Titel"
+          className="w-full p-2 border rounded-md"
+        />
+
+        <textarea
+          value={description}
+          onChange={handleDescriptionChange}
+          placeholder="Beschreibung"
+          rows={3}
+          className="w-full p-2 border rounded-md resize-none"
+        />
       </div>
 
-{/* Control Buttons */}
-       <div className="flex gap-3 justify-center">
-         {!isTimerRunning && !activeEntry && (
-           <button
-             onClick={handleStart}
-             disabled={!isToday}
-             className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-           >
-             Start
-           </button>
-         )}
+      <div className="flex gap-3 justify-center">
+        {!isTimerRunning && !activeEntry && (
+          <button
+            onClick={handleStart}
+            disabled={!isToday || disabled}
+            className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium disabled:opacity-50"
+          >
+            Start
+          </button>
+        )}
+
         {isTimerRunning && (
           <button
             onClick={handleStop}
@@ -200,6 +196,7 @@ export default function Timer({ onTimerComplete, showTemplates = true, disabled 
             Stop
           </button>
         )}
+
         {isActive && (
           <button
             onClick={handleReset}
